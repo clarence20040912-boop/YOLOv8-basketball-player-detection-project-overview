@@ -1,0 +1,24 @@
+# YOLOv8 数据集配置文件
+# 篮球运动员动作检测
+
+path: ../data  # 数据集根目录
+train: images/train
+val: images/val
+
+# 检测类别
+names:
+  0: player        # 球员
+  1: basketball     # 篮球
+  2: hoop          # 篮筐
+  3: referee       # 裁判
+
+# 动作类别（用于动作分类模块，非YOLO直接使用）
+# actions:
+#   0: shooting     # 投篮
+#   1: dribbling    # 运球
+#   2: passing      # 传球
+#   3: dunking      # 扣篮
+#   4: blocking     # 盖帽
+#   5: rebounding   # 抢篮板
+#   6: standing     # 站立
+#   7: running      # 跑动
