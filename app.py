@@ -114,7 +114,8 @@ def create_app():
     
     with gr.Blocks(
         title="🏀 Basketball Commentary AI System",
-        theme=gr.themes.Soft()
+        theme=gr.themes.Soft(),
+        js="() => { document.documentElement.lang = 'en'; }"
     ) as app:
         
         gr.Markdown("""
