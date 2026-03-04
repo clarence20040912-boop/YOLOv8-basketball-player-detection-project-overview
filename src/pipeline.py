@@ -1,6 +1,6 @@
 """
-主流水线
-串联所有模块：检测 → 姿态估计 → 动作识别 → 解说生成
+Main pipeline
+Chains all modules: detection → pose estimation → action recognition → commentary generation
 """
 
 import cv2
@@ -22,7 +22,7 @@ from src.video_processor import VideoProcessor, FrameInfo
 
 @dataclass
 class FrameAnalysisResult:
-    """单帧分析结果"""
+    """Single frame analysis result"""
     frame_id: int
     timestamp: float
     detections: List[Detection]
@@ -33,7 +33,7 @@ class FrameAnalysisResult:
 
 
 class BasketballCommentaryPipeline:
-    """篮球解说系统主流水线"""
+    """Basketball commentary system main pipeline"""
     
     def __init__(self, 
                  detector_model: str = "yolov8n.pt",
@@ -41,23 +41,23 @@ class BasketballCommentaryPipeline:
                  use_llm: bool = False,
                  llm_api_key: Optional[str] = None,
                  confidence_threshold: float = 0.5,
-                 language: str = "cn"):
+                 language: str = "en"):
         """
-        初始化流水线
-        
+        Initialize the pipeline.
+
         Args:
-            detector_model: 检测模型路径
-            pose_model: 姿态模型路径
-            use_llm: 是否使用LLM生成解说
-            llm_api_key: LLM API密钥
-            confidence_threshold: 置信度阈值
-            language: 解说语言
+            detector_model: detection model path
+            pose_model: pose model path
+            use_llm: whether to use LLM for commentary generation
+            llm_api_key: LLM API key
+            confidence_threshold: confidence threshold
+            language: commentary language
         """
         print("=" * 60)
-        print("🏀 初始化篮球解说系统")
+        print("🏀 Initializing Basketball Commentary System")
         print("=" * 60)
         
-        # 初始化各模块
+        # initialize modules
         self.detector = BasketballDetector(
             detector_model, confidence_threshold
         )
@@ -75,25 +75,25 @@ class BasketballCommentaryPipeline:
         
         self.language = language
         print("=" * 60)
-        print("✅ 系统初始化完成！")
+        print("✅ System initialization complete!")
         print("=" * 60)
     
     def analyze_image(self, image: np.ndarray, 
                       draw: bool = True) -> FrameAnalysisResult:
         """
-        分析单张图片
-        
+        Analyze a single image.
+
         Args:
-            image: 输入图片
-            draw: 是否绘制标注
-            
+            image: input image
+            draw: whether to draw annotations
+
         Returns:
-            分析结果
+            analysis result
         """
-        # Step 1: 目标检测
+        # Step 1: object detection
         detections = self.detector.detect(image)
         
-        # Step 2: 获取篮球位置
+        # Step 2: locate basketball
         ball_det = next((d for d in detections if d.class_name == "basketball"), None)
         ball_pos = None
         if ball_det:
@@ -101,25 +101,25 @@ class BasketballCommentaryPipeline:
             by = (ball_det.bbox[1] + ball_det.bbox[3]) // 2
             ball_pos = (bx, by)
         
-        # Step 3: 姿态估计
+        # Step 3: pose estimation
         poses = self.pose_estimator.estimate(image)
         
-        # Step 4: 动作识别
+        # Step 4: action recognition
         actions = []
         for pose in poses:
             action = self.action_recognizer.recognize(pose, ball_pos)
             actions.append(action)
         
-        # Step 5: 生成解说
+        # Step 5: commentary generation
         commentaries = []
         for i, action in enumerate(actions):
-            player_name = f"{'球员' if self.language == 'cn' else 'Player'} #{i+1}"
+            player_name = f"Player #{i+1}"
             commentary = self.commentary_generator.generate(
                 action, player_name, self.language
             )
             commentaries.append(commentary)
         
-        # Step 6: 绘制标注
+        # Step 6: draw annotations
         annotated = None
         if draw:
             annotated = self._draw_results(image, detections, poses, actions, commentaries)
@@ -139,16 +139,16 @@ class BasketballCommentaryPipeline:
                       keyframe_interval: float = 1.0,
                       show_progress: bool = True) -> List[FrameAnalysisResult]:
         """
-        分析视频
-        
+        Analyze a video.
+
         Args:
-            video_path: 视频路径
-            output_path: 输出视频路径（可选）
-            keyframe_interval: 关键帧提取间隔（秒）
-            show_progress: 是否显示进度
-            
+            video_path: video file path
+            output_path: output video path (optional)
+            keyframe_interval: keyframe extraction interval in seconds
+            show_progress: whether to show a progress bar
+
         Returns:
-            所有关键帧的分析结果
+            analysis results for all keyframes
         """
         from tqdm import tqdm
         
@@ -158,18 +158,18 @@ class BasketballCommentaryPipeline:
             interval=keyframe_interval
         )
         
-        # 输出视频写入器
+        # output video writer
         writer = None
         if output_path:
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(
                 output_path, fourcc, 
-                1.0 / keyframe_interval,  # 输出帧率
+                1.0 / keyframe_interval,  # output frame rate
                 (processor.width, processor.height)
             )
         
         results = []
-        iterator = tqdm(keyframes, desc="分析中") if show_progress else keyframes
+        iterator = tqdm(keyframes, desc="Analyzing") if show_progress else keyframes
         
         for frame_info in iterator:
             result = self.analyze_image(frame_info.frame, draw=True)
@@ -177,11 +177,11 @@ class BasketballCommentaryPipeline:
             result.timestamp = frame_info.timestamp
             results.append(result)
             
-            # 写入输出视频
+            # write to output video
             if writer and result.annotated_frame is not None:
                 writer.write(result.annotated_frame)
             
-            # 打印解说
+            # print commentary
             if result.commentaries:
                 timestamp_str = f"[{frame_info.timestamp:.1f}s]"
                 for comm in result.commentaries:
@@ -190,12 +190,12 @@ class BasketballCommentaryPipeline:
         
         if writer:
             writer.release()
-            print(f"✅ 输出视频已保存: {output_path}")
+            print(f"✅ Output video saved: {output_path}")
         
         processor.release()
         
-        print(f"\n📊 分析完成: {len(results)} 个关键帧, "
-              f"检测到 {sum(len(r.actions) for r in results)} 个动作")
+        print(f"\n📊 Analysis complete: {len(results)} keyframes, "
+              f"{sum(len(r.actions) for r in results)} actions detected")
         
         return results
     
@@ -204,27 +204,27 @@ class BasketballCommentaryPipeline:
                       poses: List[PoseResult],
                       actions: List[ActionResult],
                       commentaries: List[CommentaryResult]) -> np.ndarray:
-        """绘制综合结果"""
+        """Draw combined results"""
         output = image.copy()
         
-        # 绘制检测框
+        # draw detection boxes
         output = self.detector.draw_detections(output, detections)
         
-        # 绘制骨骼
+        # draw skeleton
         output = self.pose_estimator.draw_poses(output, poses)
         
-        # 绘制动作标签
+        # draw action labels
         for i, (pose, action) in enumerate(zip(poses, actions)):
             x1, y1, x2, y2 = pose.bbox
-            label = f"{action.action_cn} ({action.confidence:.0%})"
+            label = f"{action.action_en} ({action.confidence:.0%})"
             
             cv2.putText(output, label, (x1, y2 + 20),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         
-        # 在底部绘制解说文字
+        # draw commentary text at the bottom
         if commentaries:
             h, w = output.shape[:2]
-            # 半透明底栏
+            # semi-transparent bar
             overlay = output.copy()
             bar_height = 40 * len(commentaries) + 20
             cv2.rectangle(overlay, (0, h - bar_height), (w, h), (0, 0, 0), -1)
@@ -232,8 +232,8 @@ class BasketballCommentaryPipeline:
             
             for i, comm in enumerate(commentaries):
                 y = h - bar_height + 30 + i * 40
-                # 注意: OpenCV不直接支持中文，实际使用中可用PIL绘制
-                cv2.putText(output, comm.text[:60], (10, y),
+                truncated = comm.text[:57] + "..." if len(comm.text) > 60 else comm.text
+                cv2.putText(output, truncated, (10, y),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         
         return output
