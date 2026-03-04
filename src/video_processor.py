@@ -1,6 +1,6 @@
 """
-视频处理模块
-负责视频读取、关键帧提取、帧序列处理
+Video Processing Module
+Handles video reading, keyframe extraction, and frame sequence processing
 """
 
 import cv2
@@ -11,28 +11,28 @@ from dataclasses import dataclass
 
 @dataclass
 class FrameInfo:
-    """帧信息"""
-    frame: np.ndarray       # 帧图像
-    frame_id: int           # 帧编号
-    timestamp: float        # 时间戳（秒）
-    is_keyframe: bool       # 是否为关键帧
+    """Frame information"""
+    frame: np.ndarray       # frame image
+    frame_id: int           # frame number
+    timestamp: float        # timestamp (seconds)
+    is_keyframe: bool       # whether this is a keyframe
 
 
 class VideoProcessor:
-    """视频处理器"""
+    """Video processor"""
     
     def __init__(self, video_path: str):
         """
-        初始化视频处理器
-        
+        Initialize the video processor.
+
         Args:
-            video_path: 视频文件路径
+            video_path: path to the video file
         """
         self.video_path = video_path
         self.cap = cv2.VideoCapture(video_path)
         
         if not self.cap.isOpened():
-            raise FileNotFoundError(f"无法打开视频: {video_path}")
+            raise FileNotFoundError(f"Cannot open video: {video_path}")
         
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -40,19 +40,19 @@ class VideoProcessor:
         self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.duration = self.total_frames / self.fps if self.fps > 0 else 0
         
-        print(f"✅ 视频已加载: {video_path}")
-        print(f"   分辨率: {self.width}x{self.height}, FPS: {self.fps:.1f}, "
-              f"时长: {self.duration:.1f}s, 总帧数: {self.total_frames}")
+        print(f"✅ Video loaded: {video_path}")
+        print(f"   Resolution: {self.width}x{self.height}, FPS: {self.fps:.1f}, "
+              f"Duration: {self.duration:.1f}s, Total frames: {self.total_frames}")
     
     def read_frames(self, skip: int = 1) -> Generator[FrameInfo, None, None]:
         """
-        逐帧读取视频
-        
+        Read frames from the video one by one.
+
         Args:
-            skip: 每隔skip帧读取一帧（用于加速处理）
-            
+            skip: read one frame every `skip` frames (for faster processing)
+
         Yields:
-            FrameInfo对象
+            FrameInfo objects
         """
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         frame_id = 0
@@ -76,17 +76,17 @@ class VideoProcessor:
                           interval: float = 1.0,
                           threshold: float = 30.0) -> List[FrameInfo]:
         """
-        提取关键帧
-        
+        Extract keyframes from the video.
+
         Args:
-            method: 提取方法
-                - "interval": 按时间间隔提取
-                - "diff": 基于帧差法提取（场景变化时）
-            interval: 时间间隔（秒），用于interval方法
-            threshold: 帧差阈值，用于diff方法
-            
+            method: extraction method
+                - "interval": extract at fixed time intervals
+                - "diff": extract on scene changes (frame difference)
+            interval: time interval in seconds, used for the "interval" method
+            threshold: frame difference threshold, used for the "diff" method
+
         Returns:
-            关键帧列表
+            list of keyframes
         """
         keyframes = []
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -134,7 +134,7 @@ class VideoProcessor:
                             is_keyframe=True
                         ))
                 else:
-                    # 第一帧总是关键帧
+                    # first frame is always a keyframe
                     keyframes.append(FrameInfo(
                         frame=frame,
                         frame_id=frame_id,
@@ -145,18 +145,18 @@ class VideoProcessor:
                 prev_gray = gray
                 frame_id += 1
         
-        print(f"✅ 提取了 {len(keyframes)} 个关键帧 (方法: {method})")
+        print(f"✅ Extracted {len(keyframes)} keyframes (method: {method})")
         return keyframes
     
     def get_frame_at(self, timestamp: float) -> Optional[np.ndarray]:
-        """获取指定时间戳的帧"""
+        """Get the frame at the specified timestamp"""
         frame_id = int(timestamp * self.fps)
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
         ret, frame = self.cap.read()
         return frame if ret else None
     
     def release(self):
-        """释放视频资源"""
+        """Release video resources"""
         if self.cap.isOpened():
             self.cap.release()
     

@@ -1,6 +1,6 @@
 """
-YOLOv8 Pose 姿态估计模块
-提取球员骨骼关键点，用于动作识别
+YOLOv8 Pose Estimation Module
+Extracts player skeleton keypoints for action recognition
 """
 
 import cv2
@@ -10,7 +10,7 @@ from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
 
 
-# COCO 17个关键点定义
+# COCO 17 keypoint definitions
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",
     "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
@@ -18,36 +18,36 @@ KEYPOINT_NAMES = [
     "left_knee", "right_knee", "left_ankle", "right_ankle"
 ]
 
-# 骨骼连接 (用于可视化)
+# Skeleton connections (for visualization)
 SKELETON_CONNECTIONS = [
-    (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),   # 上肢
-    (5, 11), (6, 12), (11, 12),                    # 躯干
-    (11, 13), (13, 15), (12, 14), (14, 16)         # 下肢
+    (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),   # upper limbs
+    (5, 11), (6, 12), (11, 12),                    # torso
+    (11, 13), (13, 15), (12, 14), (14, 16)         # lower limbs
 ]
 
 
 @dataclass
 class PoseResult:
-    """姿态估计结果"""
-    bbox: Tuple[int, int, int, int]          # 人物边界框
-    keypoints: np.ndarray                     # 关键点坐标 (17, 3) [x, y, conf]
-    confidence: float                         # 检测置信度
+    """Pose estimation result"""
+    bbox: Tuple[int, int, int, int]          # person bounding box
+    keypoints: np.ndarray                     # keypoint coordinates (17, 3) [x, y, conf]
+    confidence: float                         # detection confidence
     
     def get_keypoint(self, name: str) -> Tuple[float, float, float]:
-        """获取指定关键点 (x, y, confidence)"""
+        """Get the specified keypoint (x, y, confidence)"""
         idx = KEYPOINT_NAMES.index(name)
         return tuple(self.keypoints[idx])
     
     def get_angle(self, p1: str, p2: str, p3: str) -> float:
         """
-        计算三个关键点之间的角度
-        用于判断动作（如手臂弯曲角度）
-        
+        Compute the angle formed by three keypoints.
+        Used for action detection (e.g. arm bend angle).
+
         Args:
-            p1, p2, p3: 关键点名称, p2为角的顶点
-            
+            p1, p2, p3: keypoint names; p2 is the vertex of the angle
+
         Returns:
-            角度 (度)
+            angle in degrees
         """
         a = np.array(self.get_keypoint(p1)[:2])
         b = np.array(self.get_keypoint(p2)[:2])
@@ -63,30 +63,30 @@ class PoseResult:
 
 
 class PoseEstimator:
-    """YOLOv8 姿态估计器"""
+    """YOLOv8 Pose Estimator"""
     
     def __init__(self, model_path: str = "yolov8n-pose.pt",
                  confidence_threshold: float = 0.5):
         """
-        初始化姿态估计器
-        
+        Initialize the pose estimator.
+
         Args:
-            model_path: YOLOv8-Pose模型路径
-            confidence_threshold: 置信度阈值
+            model_path: YOLOv8-Pose model path
+            confidence_threshold: confidence threshold
         """
         self.model = YOLO(model_path)
         self.confidence_threshold = confidence_threshold
-        print(f"✅ 姿态估计器已加载: {model_path}")
+        print(f"✅ Pose estimator loaded: {model_path}")
     
     def estimate(self, image: np.ndarray) -> List[PoseResult]:
         """
-        对图片中的人物进行姿态估计
-        
+        Run pose estimation on people in the image.
+
         Args:
-            image: 输入图片 (BGR, numpy)
-            
+            image: input image (BGR, numpy)
+
         Returns:
-            姿态估计结果列表
+            list of pose estimation results
         """
         results = self.model(
             image, 
@@ -117,19 +117,19 @@ class PoseEstimator:
     
     def draw_poses(self, image: np.ndarray, 
                    poses: List[PoseResult]) -> np.ndarray:
-        """绘制骨骼关键点"""
+        """Draw skeleton keypoints"""
         output = image.copy()
         
         for pose in poses:
             kps = pose.keypoints
             
-            # 画关键点
+            # draw keypoints
             for j in range(17):
                 x, y, conf = kps[j]
                 if conf > 0.5:
                     cv2.circle(output, (int(x), int(y)), 4, (0, 255, 0), -1)
             
-            # 画骨骼连接
+            # draw skeleton connections
             for (idx1, idx2) in SKELETON_CONNECTIONS:
                 x1, y1, c1 = kps[idx1]
                 x2, y2, c2 = kps[idx2]
