@@ -75,7 +75,7 @@ def analyze_image(input_image, confidence=0.5):
     return output_image, commentary_text, stats
 
 
-def analyze_video(input_video, confidence=0.5, interval=1.0):
+def analyze_video(input_video, confidence=0.5, interval=1.0, progress=gr.Progress()):
     """Analyze an uploaded video"""
     global pipeline
     
@@ -88,12 +88,17 @@ def analyze_video(input_video, confidence=0.5, interval=1.0):
     if input_video is None:
         return "Please upload a video file.", ""
     
+    progress(0, desc="🏀 Loading video...")
+    
     results = pipeline.analyze_video(
         video_path=input_video,
         output_path=None,
         keyframe_interval=interval,
-        show_progress=True
+        show_progress=False,
+        progress_callback=lambda pct, desc: progress(pct, desc=desc)
     )
+    
+    progress(1.0, desc="✅ Generating commentary...")
     
     # collect all commentary
     all_commentary = "📝 **Full Game Commentary:**\n\n"

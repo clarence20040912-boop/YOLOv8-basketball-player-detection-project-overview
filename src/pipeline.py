@@ -6,7 +6,7 @@ Chains all modules: detection → pose estimation → action recognition → com
 import cv2
 import numpy as np
 import time
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Callable
 from dataclasses import dataclass
 
 from src.detector import BasketballDetector, Detection
@@ -137,7 +137,8 @@ class BasketballCommentaryPipeline:
     def analyze_video(self, video_path: str,
                       output_path: Optional[str] = None,
                       keyframe_interval: float = 1.0,
-                      show_progress: bool = True) -> List[FrameAnalysisResult]:
+                      show_progress: bool = True,
+                      progress_callback: Optional[Callable[[float, str], None]] = None) -> List[FrameAnalysisResult]:
         """
         Analyze a video.
 
@@ -146,6 +147,8 @@ class BasketballCommentaryPipeline:
             output_path: output video path (optional)
             keyframe_interval: keyframe extraction interval in seconds
             show_progress: whether to show a progress bar
+            progress_callback: optional callable(fraction, description) for
+                external progress reporting (e.g. Gradio progress bar)
 
         Returns:
             analysis results for all keyframes
@@ -169,11 +172,17 @@ class BasketballCommentaryPipeline:
             )
         
         results = []
+        total_keyframes = len(keyframes)
         iterator = tqdm(keyframes, desc="Analyzing") if show_progress else keyframes
         need_draw = output_path is not None
         
         try:
-            for frame_info in iterator:
+            for idx, frame_info in enumerate(iterator):
+                if progress_callback:
+                    progress_callback(
+                        idx / total_keyframes if total_keyframes > 0 else 0,
+                        f"Analyzing keyframe {idx + 1}/{total_keyframes}..."
+                    )
                 result = self.analyze_image(frame_info.frame, draw=need_draw)
                 result.frame_id = frame_info.frame_id
                 result.timestamp = frame_info.timestamp
