@@ -51,7 +51,7 @@ def main():
     
     if is_video:
         # video analysis
-        output_path = args.output or input_path.replace('.', '_output.')
+        output_path = args.output if args.output else None
         results = pipeline.analyze_video(
             video_path=input_path,
             output_path=output_path,

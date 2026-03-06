@@ -88,10 +88,9 @@ def analyze_video(input_video, confidence=0.5, interval=1.0):
     if input_video is None:
         return None, "Please upload a video file.", ""
     
-    output_path = "output_video.mp4"
     results = pipeline.analyze_video(
         video_path=input_video,
-        output_path=output_path,
+        output_path=None,
         keyframe_interval=interval,
         show_progress=True
     )
@@ -105,7 +104,7 @@ def analyze_video(input_video, confidence=0.5, interval=1.0):
     
     stats = f"📊 Analyzed {len(results)} keyframes, detected {sum(len(r.actions) for r in results)} actions"
     
-    return output_path, all_commentary, stats
+    return None, all_commentary, stats
 
 
 # Create Gradio interface
