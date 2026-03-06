@@ -86,7 +86,7 @@ def analyze_video(input_video, confidence=0.5, interval=1.0):
     pipeline.detector.confidence_threshold = confidence
     
     if input_video is None:
-        return None, "Please upload a video file.", ""
+        return "Please upload a video file.", ""
     
     results = pipeline.analyze_video(
         video_path=input_video,
@@ -104,7 +104,7 @@ def analyze_video(input_video, confidence=0.5, interval=1.0):
     
     stats = f"📊 Analyzed {len(results)} keyframes, detected {sum(len(r.actions) for r in results)} actions"
     
-    return None, all_commentary, stats
+    return all_commentary, stats
 
 
 # Create Gradio interface
@@ -168,14 +168,13 @@ def create_app():
                         vid_btn = gr.Button("🔍 Start Analysis", variant="primary")
                     
                     with gr.Column():
-                        vid_output = gr.Video(label="Analysis Result")
                         vid_commentary = gr.Markdown(label="🎙️ Commentary")
                         vid_stats = gr.Markdown(label="📊 Statistics")
                 
                 vid_btn.click(
                     analyze_video,
                     inputs=[vid_input, vid_conf, vid_interval],
-                    outputs=[vid_output, vid_commentary, vid_stats]
+                    outputs=[vid_commentary, vid_stats]
                 )
         
         gr.Markdown("---")
