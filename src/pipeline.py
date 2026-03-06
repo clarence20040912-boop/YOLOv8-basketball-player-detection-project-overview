@@ -170,29 +170,36 @@ class BasketballCommentaryPipeline:
         
         results = []
         iterator = tqdm(keyframes, desc="Analyzing") if show_progress else keyframes
+        need_draw = output_path is not None
         
-        for frame_info in iterator:
-            result = self.analyze_image(frame_info.frame, draw=True)
-            result.frame_id = frame_info.frame_id
-            result.timestamp = frame_info.timestamp
-            results.append(result)
-            
-            # write to output video
-            if writer and result.annotated_frame is not None:
-                writer.write(result.annotated_frame)
-            
-            # print commentary
-            if result.commentaries:
-                timestamp_str = f"[{frame_info.timestamp:.1f}s]"
-                for comm in result.commentaries:
-                    if show_progress:
-                        tqdm.write(f"  {timestamp_str} {comm.text}")
+        try:
+            for frame_info in iterator:
+                result = self.analyze_image(frame_info.frame, draw=need_draw)
+                result.frame_id = frame_info.frame_id
+                result.timestamp = frame_info.timestamp
+                results.append(result)
+                
+                # write to output video
+                if writer and result.annotated_frame is not None:
+                    writer.write(result.annotated_frame)
+                
+                # free heavy frame data to reduce memory usage
+                result.annotated_frame = None
+                frame_info.frame = None
+                
+                # print commentary
+                if result.commentaries:
+                    timestamp_str = f"[{frame_info.timestamp:.1f}s]"
+                    for comm in result.commentaries:
+                        if show_progress:
+                            tqdm.write(f"  {timestamp_str} {comm.text}")
+        finally:
+            if writer:
+                writer.release()
+            processor.release()
         
-        if writer:
-            writer.release()
+        if output_path:
             print(f"✅ Output video saved: {output_path}")
-        
-        processor.release()
         
         print(f"\n📊 Analysis complete: {len(results)} keyframes, "
               f"{sum(len(r.actions) for r in results)} actions detected")
